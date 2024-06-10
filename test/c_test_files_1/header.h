@@ -1,4 +1,5 @@
-#ifndef _H_HEADER__
+#ifndef __HEADER_H_
+#define __HEADER_H_
 
 void header_used(void);
 void header_unused(void);

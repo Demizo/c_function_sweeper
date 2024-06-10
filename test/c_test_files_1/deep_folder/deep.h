@@ -1,3 +1,6 @@
-#ifndef _H_DEEP__
+#ifndef __DEEP_H_
+#define __DEEP_H_
+
 void deep_func(void);
+
 #endif

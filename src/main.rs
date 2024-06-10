@@ -24,6 +24,7 @@ struct Args {
 
 #[derive(Default)]
 struct FunctionStats {
+    is_macro: bool,
     declarations: Vec<(PathBuf, usize, usize)>,
     calls: Vec<(PathBuf, usize, usize)>,
 }
@@ -94,7 +95,7 @@ fn main() {
                 println!("-> {} {}:{}", file.display(), line, col);
             }
         }
-        if stats.declarations.len() < 2 {
+        if stats.declarations.len() < 2 && !stats.is_macro {
             println!("Undeclared Function '{}':", function_name);
             for (file, line, col) in stats.declarations.iter() {
                 println!("-> {} {}:{}", file.display(), line, col);
@@ -136,15 +137,32 @@ fn find_function_stats(
 ) {
     // Traverse the syntax tree to find function declarations and call nodes
     match node.kind() {
-        "function_declarator" => {
-            if let Some(declarator) = node.child_by_field_name("declarator") {
-                let function_name = declarator.utf8_text(source).unwrap();
+        "preproc_function_def" => {
+            if let Some(function_name_node) = node.child_by_field_name("name") {
+                let function_name = function_name_node.utf8_text(source).unwrap();
                 let stats = function_stats.entry(function_name.to_string()).or_default();
+                stats.is_macro = true;
                 stats.declarations.push((
                     path.to_path_buf(),
-                    declarator.start_position().row,
-                    declarator.start_position().column,
+                    function_name_node.start_position().row,
+                    function_name_node.start_position().column,
                 ));
+            }
+        }
+        "function_declarator" => {
+            if let Some(parent) = node.parent() {
+                if parent.kind() != "parameter_declaration" {
+                    if let Some(declarator) = node.child_by_field_name("declarator") {
+                        let function_name = declarator.utf8_text(source).unwrap();
+                        let stats = function_stats.entry(function_name.to_string()).or_default();
+                        stats.is_macro = false;
+                        stats.declarations.push((
+                            path.to_path_buf(),
+                            declarator.start_position().row,
+                            declarator.start_position().column,
+                        ));
+                    }
+                }
             }
         }
         "call_expression" => {
@@ -156,6 +174,24 @@ fn find_function_stats(
                     function_name_node.start_position().row,
                     function_name_node.start_position().column,
                 ));
+            }
+        }
+        "identifier" => {
+            // Detect identifiers in expressions that might be function calls
+            if let Some(parent) = node.parent() {
+                if parent.kind() == "argument_list" {
+                    let function_name = node.utf8_text(source).unwrap().to_string();
+                    if function_stats.contains_key(&function_name) {
+                        let stats = function_stats.entry(function_name.to_string()).or_default();
+                        if stats.declarations.len() > 0 {
+                            stats.calls.push((
+                                path.to_path_buf(),
+                                node.start_position().row,
+                                node.start_position().column,
+                            ));
+                        }
+                    }
+                }
             }
         }
         _ => {}
