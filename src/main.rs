@@ -151,7 +151,7 @@ fn find_function_stats(
         }
         "function_declarator" => {
             if let Some(parent) = node.parent() {
-                if parent.kind() != "parameter_declaration" {
+                if parent.kind() != "parameter_declaration" && parent.kind() != "type_definition" {
                     if let Some(declarator) = node.child_by_field_name("declarator") {
                         let function_name = declarator.utf8_text(source).unwrap();
                         let stats = function_stats.entry(function_name.to_string()).or_default();
