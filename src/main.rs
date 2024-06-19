@@ -179,7 +179,7 @@ fn find_function_stats(
         "identifier" => {
             // Detect identifiers in expressions that might be function calls
             if let Some(parent) = node.parent() {
-                if parent.kind() == "argument_list" {
+                if parent.kind() == "argument_list" || parent.kind() == "argument" {
                     let function_name = node.utf8_text(source).unwrap().to_string();
                     if function_stats.contains_key(&function_name) {
                         let stats = function_stats.entry(function_name.to_string()).or_default();

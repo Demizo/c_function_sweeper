@@ -3,6 +3,7 @@
 #define MACRO(arg) (!(1 != arg))
 
 static void func_called_as_param(int);
+static void func_called_as_param_ref(int);
 static void static_func(void (*f)(int));
 
 static void static_func_no_proto() {
@@ -11,6 +12,7 @@ static void static_func_no_proto() {
 
 void main () {
   static_func(func_called_as_param);
+  static_func(&func_called_as_param_ref);
   static_func_no_proto();
   header_used();
   MACRO(1);
@@ -18,5 +20,10 @@ void main () {
 }
 
 static void static_func() {
+  return;
+}
+
+static void func_called_as_param_ref(int)
+{
   return;
 }
